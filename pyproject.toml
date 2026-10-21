@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "units-lib"
 dynamic = ["version"]
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 description = "Library for managing calculations of quantities with units."
 readme = "README.md"
 license = "GPL-3.0-or-later"
@@ -16,6 +16,7 @@ authors = [
 keywords = ["units", "physics", "maths", "siunits"]
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
@@ -33,5 +34,6 @@ dev = [
     "ty>=0.0.78",
 ]
 tests = [
+    "hypothesis>=6.170.5",
     "pytest>=9.1.1",
 ]
