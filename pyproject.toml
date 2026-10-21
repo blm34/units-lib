@@ -34,5 +34,6 @@ dev = [
     "ty>=0.0.78",
 ]
 tests = [
+    "hypothesis>=6.170.5",
     "pytest>=9.1.1",
 ]
