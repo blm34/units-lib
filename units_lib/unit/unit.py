@@ -10,6 +10,9 @@ from units_lib.si_prefix import NONE as prefixless
 from units_lib.si_prefix import SIPrefix
 from units_lib.utils.fraction import frac_pow
 
+if TYPE_CHECKING:
+    from units_lib.quantity.quantity import Quantity
+
 
 @dataclass(frozen=True, slots=True)
 class NamedUnit:
@@ -172,6 +175,11 @@ class Unit(Generic[D]):
             for term in self.terms
         )
         return Unit(terms)
+
+    def __rmul__(self, value: V) -> Quantity[D, V]:
+        from units_lib.quantity.quantity import Quantity
+
+        return Quantity(value, self)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Unit):
