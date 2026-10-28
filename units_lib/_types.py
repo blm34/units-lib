@@ -8,3 +8,5 @@ Numeric = float | Decimal | Fraction
 
 K = TypeVar("K", bound=Kind)
 V = TypeVar("V", bound=Numeric)
+
+# TODO: Add a unit protocol that covers both ``Unit`` and ``AffineUnit``
