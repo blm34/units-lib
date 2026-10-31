@@ -16,7 +16,7 @@ _CONSTANTS = {
 
 @dataclass(frozen=True, slots=True)
 class Scale:
-    """A positive real number represented as a product of independant values raised to powers."""
+    """A positive real number represented as a product of independent values raised to powers."""
 
     factors: frozenset[tuple[Base, Fraction]] = frozenset()
 
