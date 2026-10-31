@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from fractions import Fraction
+from functools import total_ordering
 from typing import Self
 
 from units_lib.utils.factors import factorise
@@ -14,6 +15,7 @@ _CONSTANTS = {
 }
 
 
+@total_ordering
 @dataclass(frozen=True, slots=True)
 class Scale:
     """A positive real number represented as a product of independent values raised to powers."""
@@ -99,3 +101,18 @@ class Scale:
             result *= float(base**exp)
 
         return result
+
+    def __lt__(self, other: Scale | int | Fraction) -> bool:
+        if isinstance(other, (int, Fraction)) and not isinstance(other, bool):
+            other = self.from_number(other)
+
+        if not isinstance(other, Scale):
+            return NotImplemented
+
+        ratio = self / other
+
+        fractional_ratio = ratio.to_fraction()
+        if fractional_ratio is not None:
+            return fractional_ratio < 1
+
+        return float(ratio) < 1

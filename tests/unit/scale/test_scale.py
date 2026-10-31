@@ -20,6 +20,14 @@ class TestScale:
     def one(self):
         return Scale.from_number(1)
 
+    @pytest.fixture
+    def two(self) -> Scale:
+        return Scale.from_number(2)
+
+    @pytest.fixture
+    def three(self) -> Scale:
+        return Scale.from_number(3)
+
     def test_one_is_identity(self, one):
         # ACT
         scale = Scale()
@@ -450,3 +458,146 @@ class TestScale:
 
         # ASSERT
         assert (a.factors, b.factors) == before
+
+    def test_less_than(self):
+        assert Scale.from_number(2) < Scale.from_number(3)
+
+    def test_greater_than(self):
+        assert Scale.from_number(5) > Scale.from_number(3)
+
+    def test_equal_values(self):
+        assert Scale.from_number(4) == Scale.from_number(2) ** 2
+
+    def test_fractional_values(self):
+        half = Scale.from_number(F(1, 2))
+        third = Scale.from_number(F(1, 3))
+
+        assert third < half
+        assert half > third
+
+    def test_one(self):
+        one = Scale.from_number(1)
+        two = Scale.from_number(2)
+
+        assert one < two
+        assert one <= two
+        assert two > one
+        assert two >= one
+
+    def test_pi_greater_than_three(self, pi):
+        assert Scale.from_number(3) < pi
+
+    def test_pi_less_than_four(self, pi):
+        assert pi < Scale.from_number(4)
+
+    def test_pi_squared_greater_than_nine(self, pi):
+        assert Scale.from_number(9) < pi**2
+
+    def test_pi_squared_less_than_ten(self, pi):
+        assert pi**2 < Scale.from_number(10)
+
+    def test_inverse_pi(self, pi):
+        half = Scale.from_number(F(1, 2))
+        inverse_pi = pi**-1
+
+        assert inverse_pi < half
+        assert inverse_pi > Scale.from_number(F(1, 4))
+
+    def test_rational_multiple_of_pi(self, pi):
+        six_fifths_pi = pi * F(6, 5)
+
+        assert Scale.from_number(3) < six_fifths_pi
+        assert six_fifths_pi < Scale.from_number(4)
+
+    def test_pi_over_two(self, pi):
+        half_pi = pi / 2
+
+        assert Scale.from_number(1) < half_pi
+        assert half_pi < Scale.from_number(2)
+
+    def test_scale_less_than_int(self, two):
+        assert two < 3
+
+    def test_scale_greater_than_int(self, two):
+        assert two > 1
+
+    def test_scale_less_than_fraction(self):
+        scale = Scale.from_number(F(1, 3))
+
+        assert scale < F(1, 2)
+
+    def test_int_less_than_scale(self, two):
+        assert 1 < two
+
+    def test_int_greater_than_scale(self, two):
+        assert 3 > two
+
+    def test_fraction_less_than_scale(self):
+        scale = Scale.from_number(F(2, 3))
+
+        assert F(1, 2) < scale
+
+    def test_fraction_greater_than_scale(self):
+        scale = Scale.from_number(F(2, 3))
+
+        assert F(3, 4) > scale
+
+    def test_less_than_or_equal(self, two, three):
+        assert two <= three
+        assert two <= Scale.from_number(2)
+
+    def test_greater_than_or_equal(self, two, three):
+        assert three >= two
+        assert two >= Scale.from_number(2)
+
+    def test_not_less_than_equal_value(self):
+        two_a = Scale.from_number(2)
+        two_b = Scale.from_number(2)
+
+        assert not two_a < two_b
+        assert two_a <= two_b
+
+    def test_not_greater_than_equal_value(self):
+        two_a = Scale.from_number(2)
+        two_b = Scale.from_number(2)
+
+        assert not two_a > two_b
+        assert two_a >= two_b
+
+    def test_chained_ordering(self, pi):
+        two = Scale.from_number(2)
+        three = Scale.from_number(3)
+        four = Scale.from_number(4)
+
+        assert two < three < pi < four
+
+    def test_sorting(self, pi):
+        values = [
+            Scale.from_number(4),
+            pi,
+            Scale.from_number(2),
+            Scale.from_number(3),
+            Scale.from_number(1),
+        ]
+
+        result = sorted(values)
+
+        assert result == [
+            Scale.from_number(1),
+            Scale.from_number(2),
+            Scale.from_number(3),
+            pi,
+            Scale.from_number(4),
+        ]
+
+    def test_less_than_string_returns_type_error(self):
+        scale = Scale.from_number(2)
+
+        with pytest.raises(TypeError):
+            _ = scale < "2"  # pyright: ignore[reportOperatorIssue]
+
+    def test_greater_than_string_returns_type_error(self):
+        scale = Scale.from_number(2)
+
+        with pytest.raises(TypeError):
+            _ = scale > "2"  # pyright: ignore[reportOperatorIssue]
