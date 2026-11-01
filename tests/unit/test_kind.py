@@ -7,31 +7,31 @@ import pytest
 
 from units_lib import kind as k
 from units_lib.dimensions import BaseDimension, Dimension
-from units_lib.kind import _Kind, get_common_kind, kinds_for, resolve_kind
+from units_lib.kind import Kind, get_common_kind, kinds_for, resolve_kind
 
 
-def _discover_standard_kinds() -> tuple[type[_Kind], ...]:
+def _discover_standard_kinds() -> tuple[type[Kind], ...]:
     """Every kind defined at module level in `units_lib.kind`."""
     return tuple(
         obj
         for obj in vars(k).values()
-        if isinstance(obj, type) and issubclass(obj, _Kind) and obj is not _Kind
+        if isinstance(obj, type) and issubclass(obj, Kind) and obj is not Kind
     )
 
 
 @pytest.fixture(scope="session")
-def standard_kinds() -> tuple[type[_Kind], ...]:
+def standard_kinds() -> tuple[type[Kind], ...]:
     """All standard kinds."""
     return _discover_standard_kinds()
 
 
 @pytest.fixture(scope="session")
-def standard_kind_pairs(standard_kinds) -> tuple[tuple[type[_Kind], type[_Kind]], ...]:
+def standard_kind_pairs(standard_kinds) -> tuple[tuple[type[Kind], type[Kind]], ...]:
     return tuple(itertools.product(standard_kinds, repeat=2))
 
 
 @pytest.fixture(params=_discover_standard_kinds())
-def standard_kind(request) -> type[_Kind]:
+def standard_kind(request) -> type[Kind]:
     return request.param
 
 
@@ -87,7 +87,7 @@ def kind_tree(isolated_registry, fresh_dim, other_dim):
     Unrelated  (different dimension, no shared ancestor)
     """
 
-    class Base(_Kind, dim=fresh_dim): ...
+    class Base(Kind, dim=fresh_dim): ...
 
     class MidA(Base, dim=fresh_dim): ...
 
@@ -99,7 +99,7 @@ def kind_tree(isolated_registry, fresh_dim, other_dim):
 
     class LeafB(MidB, dim=fresh_dim): ...
 
-    class Unrelated(_Kind, dim=other_dim): ...
+    class Unrelated(Kind, dim=other_dim): ...
 
     return SimpleNamespace(
         base=Base,
@@ -554,11 +554,11 @@ def test_kinds_for_returns_all_kinds_sharing_a_dimension_in_definition_order(
     isolated_registry, fresh_dim
 ):
     # Arrange
-    class First(_Kind, dim=fresh_dim): ...
+    class First(Kind, dim=fresh_dim): ...
 
-    class Second(_Kind, dim=fresh_dim): ...
+    class Second(Kind, dim=fresh_dim): ...
 
-    class Third(_Kind, dim=fresh_dim): ...
+    class Third(Kind, dim=fresh_dim): ...
 
     # Act
     result = kinds_for(fresh_dim)
@@ -571,9 +571,9 @@ def test_kinds_for_only_returns_kinds_of_the_requested_dimension(
     isolated_registry, fresh_dim, other_dim
 ):
     # Arrange
-    class InFresh(_Kind, dim=fresh_dim): ...
+    class InFresh(Kind, dim=fresh_dim): ...
 
-    class InOther(_Kind, dim=other_dim): ...
+    class InOther(Kind, dim=other_dim): ...
 
     # Act
     fresh_result = kinds_for(fresh_dim)
@@ -588,12 +588,12 @@ def test_kinds_for_result_is_not_changed_by_later_registrations(
     isolated_registry, fresh_dim
 ):
     # Arrange
-    class First(_Kind, dim=fresh_dim): ...
+    class First(Kind, dim=fresh_dim): ...
 
     earlier_result = kinds_for(fresh_dim)
 
     # Act
-    class Second(_Kind, dim=fresh_dim): ...
+    class Second(Kind, dim=fresh_dim): ...
 
     # Assert
     assert earlier_result == (First,)
@@ -604,7 +604,7 @@ def test_kinds_for_includes_subclass_aliases_alongside_their_parent(
     isolated_registry, fresh_dim
 ):
     # Arrange
-    class Parent(_Kind, dim=fresh_dim): ...
+    class Parent(Kind, dim=fresh_dim): ...
 
     class Alias(Parent, dim=fresh_dim): ...
 
@@ -627,7 +627,7 @@ def test_resolve_kind_returns_the_only_kind_when_dimension_is_unique(
     isolated_registry, fresh_dim
 ):
     # Arrange
-    class Only(_Kind, dim=fresh_dim): ...
+    class Only(Kind, dim=fresh_dim): ...
 
     # Act
     result = resolve_kind(fresh_dim)
@@ -640,9 +640,9 @@ def test_resolve_kind_returns_none_when_ambiguous_and_no_default(
     isolated_registry, fresh_dim
 ):
     # Arrange
-    class First(_Kind, dim=fresh_dim): ...
+    class First(Kind, dim=fresh_dim): ...
 
-    class Second(_Kind, dim=fresh_dim): ...
+    class Second(Kind, dim=fresh_dim): ...
 
     # Act
     result = resolve_kind(fresh_dim)
@@ -653,9 +653,9 @@ def test_resolve_kind_returns_none_when_ambiguous_and_no_default(
 
 def test_resolve_kind_returns_default_declared_last(isolated_registry, fresh_dim):
     # Arrange
-    class First(_Kind, dim=fresh_dim): ...
+    class First(Kind, dim=fresh_dim): ...
 
-    class Second(_Kind, dim=fresh_dim, default=True): ...
+    class Second(Kind, dim=fresh_dim, default=True): ...
 
     # Act
     result = resolve_kind(fresh_dim)
@@ -666,9 +666,9 @@ def test_resolve_kind_returns_default_declared_last(isolated_registry, fresh_dim
 
 def test_resolve_kind_returns_default_declared_first(isolated_registry, fresh_dim):
     # Arrange
-    class First(_Kind, dim=fresh_dim, default=True): ...
+    class First(Kind, dim=fresh_dim, default=True): ...
 
-    class Second(_Kind, dim=fresh_dim): ...
+    class Second(Kind, dim=fresh_dim): ...
 
     # Act
     result = resolve_kind(fresh_dim)
@@ -681,7 +681,7 @@ def test_resolve_kind_returns_default_when_it_is_the_only_kind(
     isolated_registry, fresh_dim
 ):
     # Arrange
-    class Only(_Kind, dim=fresh_dim, default=True): ...
+    class Only(Kind, dim=fresh_dim, default=True): ...
 
     # Act
     result = resolve_kind(fresh_dim)
@@ -694,9 +694,9 @@ def test_resolve_kind_default_false_does_not_make_a_default(
     isolated_registry, fresh_dim
 ):
     # Arrange
-    class First(_Kind, dim=fresh_dim, default=False): ...
+    class First(Kind, dim=fresh_dim, default=False): ...
 
-    class Second(_Kind, dim=fresh_dim, default=False): ...
+    class Second(Kind, dim=fresh_dim, default=False): ...
 
     # Act
     result = resolve_kind(fresh_dim)
@@ -709,13 +709,13 @@ def test_resolve_kind_defaults_are_per_dimension(
     isolated_registry, fresh_dim, other_dim
 ):
     # Arrange
-    class FreshDefault(_Kind, dim=fresh_dim, default=True): ...
+    class FreshDefault(Kind, dim=fresh_dim, default=True): ...
 
-    class FreshOther(_Kind, dim=fresh_dim): ...
+    class FreshOther(Kind, dim=fresh_dim): ...
 
-    class OtherFirst(_Kind, dim=other_dim): ...
+    class OtherFirst(Kind, dim=other_dim): ...
 
-    class OtherSecond(_Kind, dim=other_dim): ...
+    class OtherSecond(Kind, dim=other_dim): ...
 
     # Act
     fresh_result = resolve_kind(fresh_dim)
@@ -765,7 +765,7 @@ def test_get_common_kind_never_returns_the_base_kind_class(kind_tree):
     result = get_common_kind(a, b)
 
     # Assert
-    assert result is not _Kind
+    assert result is not Kind
     assert result is None
 
 
@@ -851,7 +851,7 @@ def test_get_common_kind_is_none_for_kinds_of_different_dimensions(standard_kind
 
 def test_subclass_gets_dimension_class_variable(isolated_registry, fresh_dim):
     # Act
-    class Thing(_Kind, dim=fresh_dim): ...
+    class Thing(Kind, dim=fresh_dim): ...
 
     # Assert
     assert Thing.dimension == fresh_dim
@@ -859,7 +859,7 @@ def test_subclass_gets_dimension_class_variable(isolated_registry, fresh_dim):
 
 def test_subclass_gets_name_class_variable(isolated_registry, fresh_dim):
     # Act
-    class Thing(_Kind, dim=fresh_dim): ...
+    class Thing(Kind, dim=fresh_dim): ...
 
     # Assert
     assert Thing.name == "Thing"
@@ -867,7 +867,7 @@ def test_subclass_gets_name_class_variable(isolated_registry, fresh_dim):
 
 def test_subclass_of_a_kind_gets_its_own_name(isolated_registry, fresh_dim):
     # Arrange
-    class Parent(_Kind, dim=fresh_dim): ...
+    class Parent(Kind, dim=fresh_dim): ...
 
     # Act
     class Child(Parent, dim=fresh_dim): ...
@@ -883,7 +883,7 @@ def test_new_kind_does_not_displace_existing_kinds(isolated_registry):
     before = kinds_for(dim)
 
     # Act
-    class AnotherLength(_Kind, dim=dim): ...
+    class AnotherLength(Kind, dim=dim): ...
 
     # Assert
     assert kinds_for(dim) == (*before, AnotherLength)
@@ -891,7 +891,7 @@ def test_new_kind_does_not_displace_existing_kinds(isolated_registry):
 
 def test_default_is_not_inherited_by_subclasses(isolated_registry, fresh_dim):
     # Arrange
-    class Base(_Kind, dim=fresh_dim, default=True): ...
+    class Base(Kind, dim=fresh_dim, default=True): ...
 
     # Act
     class Alias(Base, dim=fresh_dim): ...
@@ -904,12 +904,12 @@ def test_second_default_for_same_dimension_raises_type_error(
     isolated_registry, fresh_dim
 ):
     # Arrange
-    class First(_Kind, dim=fresh_dim, default=True): ...
+    class First(Kind, dim=fresh_dim, default=True): ...
 
     # Act
     with pytest.raises(TypeError) as exc_info:
 
-        class Second(_Kind, dim=fresh_dim, default=True): ...
+        class Second(Kind, dim=fresh_dim, default=True): ...
 
     # Assert
     assert "already the default" in str(exc_info.value)
@@ -917,12 +917,12 @@ def test_second_default_for_same_dimension_raises_type_error(
 
 def test_duplicate_default_error_message_names_both_kinds(isolated_registry, fresh_dim):
     # Arrange
-    class First(_Kind, dim=fresh_dim, default=True): ...
+    class First(Kind, dim=fresh_dim, default=True): ...
 
     # Act
     with pytest.raises(TypeError) as exc_info:
 
-        class Second(_Kind, dim=fresh_dim, default=True): ...
+        class Second(Kind, dim=fresh_dim, default=True): ...
 
     # Assert
     message = str(exc_info.value)
@@ -937,7 +937,7 @@ def test_subclass_without_dim_raises_and_registers_nothing(isolated_registry):
     # Act
     with pytest.raises(TypeError):
 
-        class Bad(_Kind): ...  # pyright: ignore[reportCallIssue, reportGeneralTypeIssues]
+        class Bad(Kind): ...  # pyright: ignore[reportCallIssue, reportGeneralTypeIssues]
 
     # Assert
     assert _snapshot_registry() == before
@@ -952,7 +952,7 @@ def test_unexpected_class_keyword_raises_and_registers_nothing(
     # Act
     with pytest.raises(TypeError):
 
-        class Bad(_Kind, dim=fresh_dim, not_a_real_option=True): ...
+        class Bad(Kind, dim=fresh_dim, not_a_real_option=True): ...
 
     # Assert
     assert _snapshot_registry() == before
