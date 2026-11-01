@@ -4,7 +4,7 @@ from fractions import Fraction as F
 
 import pytest
 
-from units_lib.scale import _CONSTANTS, Scale
+from units_lib.scale.scale import _CONSTANTS, Scale
 
 
 def factors(s: Scale) -> dict:
