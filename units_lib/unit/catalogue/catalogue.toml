@@ -1,0 +1,100 @@
+# Definitions of the named units exposed by `units_lib.units.catalogue.catalogue`.
+#
+# After editing this file, regenerate the type stub:
+#
+# ```bash
+# generate-unit-catalogue
+# ```
+#
+# Each [[unit]] table defines one *base* unit. Prefixed variants (kilometer,
+# millisecond, ...) are created on demand for every SI prefix between
+# `min_prefix` and `max_prefix` (inclusive). Prefix names are the constants in
+# `units_lib.unit.si_prefix`, e.g. "NANO", "NONE", "KILO", "GIGA".
+#
+# Keys
+# ----
+# name        Full unit name. Spaces become underscores in attribute names.
+# symbol      Unit symbol.
+# kind        The kind of unit as defined in `units_lib.kind`.
+# scale       Scale relative to the reference unit (default 1). Use a string
+#             for fractions, e.g. "1/1000".
+# offset      Makes this an affine unit (e.g. temperature scales), as a
+#             fraction string.
+# min_prefix  Smallest prefix to generate (default: [defaults].min_prefix).
+# max_prefix  Largest prefix to generate (default: [defaults].max_prefix).
+
+[defaults]
+min_prefix = "QUECTO"
+max_prefix = "QUETTA"
+
+# --- SI base units ----------------------------------------------------------
+
+[[unit]]
+name = "second"
+symbol = "s"
+kind = "Time"
+
+[[unit]]
+name = "meter"
+symbol = "m"
+kind = "Length"
+
+[[unit]]
+name = "gram"
+symbol = "g"
+kind = "Mass"
+scale = "1/1000"
+
+[[unit]]
+name = "ampere"
+symbol = "A"
+kind = "ElectricCurrent"
+
+[[unit]]
+name = "kelvin"
+symbol = "K"
+kind = "Temperature"
+
+[[unit]]
+name = "mole"
+symbol = "mol"
+kind = "AmountOfSubstance"
+
+[[unit]]
+name = "candela"
+symbol = "cd"
+kind = "LuminousIntensity"
+
+# --- Affine units -----------------------------------------------------------
+
+[[unit]]
+name = "degrees celsius"
+symbol = "°C"
+kind = "Temperature"
+offset = "27315/100"
+min_prefix = "NONE"
+max_prefix = "NONE"
+
+# --- Dimensionless units ----------------------------------------------------
+
+[[unit]]
+name = "radian"
+symbol = "rad"
+kind = "Angle"
+
+[[unit]]
+name = "steradian"
+symbol = "sr"
+kind = "SolidAngle"
+
+# --- Derived units ----------------------------------------------------------
+
+[[unit]]
+name = "hertz"
+symbol = "Hz"
+kind = "Frequency"
+
+[[unit]]
+name = "newton"
+symbol = "N"
+kind = "Force"
