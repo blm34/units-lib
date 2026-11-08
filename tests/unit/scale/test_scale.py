@@ -17,6 +17,10 @@ class TestScale:
         return Scale.constant("pi")
 
     @pytest.fixture
+    def root_two(self) -> Scale:
+        return Scale.from_number(2) ** F(1, 2)
+
+    @pytest.fixture
     def one(self):
         return Scale.from_number(1)
 
@@ -87,7 +91,7 @@ class TestScale:
     def test_roundtrip_through_to_fraction(self, value):
         # ACT
         scale = Scale.from_number(value)
-        result = scale.to_fraction()
+        result = scale.as_fraction
 
         # ASSERT
         assert result == F(value)
@@ -113,6 +117,140 @@ class TestScale:
     def test_constant_unknown_name_raises(self, name):
         with pytest.raises(ValueError, match="not known"):
             Scale.constant(name)
+
+    def test_identity_is_rational(self):
+        assert Scale().is_rational
+
+    def test_one_is_rational(self, one):
+        assert one.is_rational
+
+    @pytest.mark.parametrize(
+        "value",
+        [1, 2, 12, 97, 360, F(1, 2), F(3, 4), F(22, 7), F(1, 1000), 101 * 103],
+    )
+    def test_numbers_are_rational(self, value):
+        # ACT
+        scale = Scale.from_number(value)
+
+        # ASSERT
+        assert scale.is_rational
+
+    def test_is_rational_returns_a_bool(self, one, pi):
+        assert type(one.is_rational) is bool
+        assert type(pi.is_rational) is bool
+
+    def test_is_rational_negative_integer_exponent_is_rational(self):
+        # ACT
+        scale = Scale.from_number(F(5, 7))
+
+        # ASSERT
+        assert scale.is_rational
+
+    @pytest.mark.parametrize("power", (3, -2))
+    def test_is_rational_integer_power_is_rational(self, power):
+        # ARRANGE
+        a = Scale.from_number(F(3, 2))
+
+        # ACT & ASSERT
+        assert (a**power).is_rational
+
+    def test_is_rational_power_zero_is_rational(self, pi):
+        assert (pi**0).is_rational
+
+    def test_is_rational_pi_is_not_rational(self, pi):
+        assert not pi.is_rational
+
+    @pytest.mark.parametrize("power", (3, -2))
+    def test_is_rational_pi_power_is_not_rational(self, power, pi):
+        assert not (pi**power).is_rational
+
+    def test_is_rational_pi_with_rational_part_is_not_rational(self, pi):
+        # ACT
+        scale = pi * F(3, 2)
+
+        # ASSERT
+        assert not scale.is_rational
+
+    @pytest.mark.parametrize("power", [F(1, 2), F(-1, 2), F(1, 3), F(-3, 2)])
+    def test_is_rational_fractional_exponent_is_not_rational(self, power):
+        # ACT
+        scale = Scale.from_number(3) ** power
+
+        # ASSERT
+        assert not scale.is_rational
+
+    def test_is_rational_square_root_of_two_is_not_rational(self, root_two):
+        assert not root_two.is_rational
+
+    def test_is_rational_irrational_factor_among_rational_ones_is_not_rational(
+        self, root_two
+    ):
+        # ACT
+        scale = root_two * 3
+
+        # ASSERT
+        assert not scale.is_rational
+
+    def test_is_rational_perfect_square_root_is_rational(self):
+        # ACT
+        scale = Scale.from_number(4) ** F(1, 2)
+
+        # ASSERT
+        assert scale.is_rational
+
+    def test_is_rational_fractional_exponents_combining_to_integer_are_rational(
+        self, root_two
+    ):
+        # ACT
+        scale = root_two * root_two
+
+        # ASSERT
+        assert scale.is_rational
+
+    def test_is_rational_after_fractional_power_and_inverse_power(self):
+        # ARRANGE
+        a = Scale.from_number(F(8, 27))
+
+        # ACT
+        scale = (a ** F(1, 3)) ** 3
+
+        # ASSERT
+        assert scale.is_rational
+
+    def test_is_rational_multiplying_rationals_is_rational(self):
+        # ARRANGE
+        a = Scale.from_number(F(15, 4))
+        b = Scale.from_number(F(8, 25))
+
+        # ACT & ASSERT
+        assert (a * b).is_rational
+
+    def test_is_rational_repeated_access_is_consistent(self, pi, one):
+        assert pi.is_rational is pi.is_rational
+        assert one.is_rational is one.is_rational
+
+    def test_is_rational_agrees_with_as_fraction(self, pi, root_two):
+        # ARRANGE
+        scales = [
+            Scale(),
+            Scale.from_number(7),
+            Scale.from_number(F(7, 12)),
+            Scale.from_number(4) ** F(1, 2),
+            pi,
+            pi**2,
+            pi * 3,
+            root_two,
+            root_two * root_two,
+            pi / pi,
+        ]
+
+        for scale in scales:
+            # ACT
+            rational = scale.is_rational
+            fraction = scale.as_fraction
+
+            # ASSERT
+            assert rational == (fraction is not None)
 
     @pytest.mark.parametrize("name", _CONSTANTS.keys())
     def test_every_known_constant_is_constructible_and_floatable(self, name):
@@ -215,7 +353,7 @@ class TestScale:
         result = Scale.from_number(a) * Scale.from_number(b)
 
         # ASSERT
-        assert result.to_fraction() == expected
+        assert result.as_fraction == expected
 
     def test_multiplication_int_operand(self):
         assert Scale.from_number(3) * 4 == Scale.from_number(12)
@@ -234,7 +372,7 @@ class TestScale:
         assert factors(pi * 2) == {"pi": F(1), 2: F(1)}
 
     def test_chained_with_numbers(self, one):
-        assert (one * 2 * F(3, 4) * 8).to_fraction() == 12
+        assert (one * 2 * F(3, 4) * 8).as_fraction == 12
 
     @pytest.mark.parametrize("value", [0, -3, F(-1, 2)])
     def test_multiplication_non_positive_number_raises(self, one, value):
@@ -334,7 +472,7 @@ class TestScale:
 
     def test_irrational_result_has_no_fraction(self):
         # ASSERT
-        assert (Scale.from_number(2) ** F(1, 2)).to_fraction() is None
+        assert (Scale.from_number(2) ** F(1, 2)).as_fraction is None
 
     def test_power_of_power(self):
         # ARRANGE
@@ -355,26 +493,26 @@ class TestScale:
         assert factors(pi**3) == {"pi": F(3)}
 
     def test_from_number_to_fraction_round_trip_integer(self):
-        assert Scale.from_number(1).to_fraction() == 1
+        assert Scale.from_number(1).as_fraction == 1
 
     def test_from_number_to_fraction_round_trip_fraction(self):
-        assert Scale.from_number(F(3, 4)).to_fraction() == F(3, 4)
+        assert Scale.from_number(F(3, 4)).as_fraction == F(3, 4)
 
     def test_pi_is_not_rational(self, pi):
-        assert pi.to_fraction() is None
+        assert pi.as_fraction is None
 
     def test_fractional_exponent_is_not_rational(self):
-        assert (Scale.from_number(3) ** F(1, 3)).to_fraction() is None
+        assert (Scale.from_number(3) ** F(1, 3)).as_fraction is None
 
     def test_constants_cancelling_become_rational(self, pi):
-        assert (pi * Scale.from_number(5) / pi).to_fraction() == 5
+        assert (pi * Scale.from_number(5) / pi).as_fraction == 5
 
     def test_fractional_exponents_combining_to_integer(self):
         # ARRANGE
         root2 = Scale.from_number(2) ** F(1, 2)
 
         # ACT & ASSERT
-        assert (root2 * root2).to_fraction() == 2
+        assert (root2 * root2).as_fraction == 2
 
     @pytest.mark.parametrize("value", [2, F(1, 2), 1])
     def test_returns_a_float(self, value):

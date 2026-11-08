@@ -204,7 +204,7 @@ def test_prefix_scales_are_unique(prefix_constants):
 def test_only_the_none_prefix_has_scale_one(prefix_constants, fresh_si_prefix):
     # Act
     with_unit_scale = [
-        prefix for prefix in prefix_constants if prefix.scale.to_fraction() == 1
+        prefix for prefix in prefix_constants if prefix.scale.as_fraction == 1
     ]
 
     # Assert

@@ -40,7 +40,7 @@ def approx(x: float) -> object:
 
 @given(rationals)
 def test_from_number_roundtrips(q):
-    assert Scale.from_number(q).to_fraction() == q
+    assert Scale.from_number(q).as_fraction == q
 
 
 @given(rationals)
@@ -173,13 +173,13 @@ def test_to_fraction_of_product_and_quotient(a, b):
     sa = Scale.from_number(a)
     sb = Scale.from_number(b)
 
-    assert (sa * sb).to_fraction() == a * b
-    assert (sa / sb).to_fraction() == a / b
+    assert (sa * sb).as_fraction == a * b
+    assert (sa / sb).as_fraction == a / b
 
 
 @given(rationals, int_exponents)
 def test_to_fraction_of_integer_power(q, n):
-    assert (Scale.from_number(q) ** n).to_fraction() == q**n
+    assert (Scale.from_number(q) ** n).as_fraction == q**n
 
 
 @given(rationals)
@@ -187,7 +187,7 @@ def test_square_root_is_rational_iff_perfect_square(q):
     root = Scale.from_number(q) ** F(1, 2)
     expected_rational = is_square(q.numerator) and is_square(q.denominator)
 
-    result = root.to_fraction()
+    result = root.as_fraction
 
     assert (result is not None) == expected_rational
     if result is not None:
@@ -199,13 +199,13 @@ def test_square_root_is_rational_iff_perfect_square(q):
 
 @given(rationals, nonzero_exponents)
 def test_any_pi_power_makes_value_irrational(q, e):
-    assert (Scale.from_number(q) * PI**e).to_fraction() is None
+    assert (Scale.from_number(q) * PI**e).as_fraction is None
 
 
 @given(rationals, exponents)
 def test_pi_powers_cancel(q, e):
     s = Scale.from_number(q) * PI**e / PI**e
-    assert s.to_fraction() == q
+    assert s.as_fraction == q
 
 
 @given(scales())

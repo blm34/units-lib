@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from fractions import Fraction
-from functools import total_ordering
+from functools import cached_property, total_ordering
 from typing import Self
 
 from units_lib.utils.factors import factorise
@@ -16,7 +16,7 @@ _CONSTANTS = {
 
 
 @total_ordering
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class Scale:
     """A positive real number represented as a product of independent values raised to powers."""
 
@@ -52,6 +52,13 @@ class Scale:
 
         return cls._build({value: Fraction(1)})
 
+    @cached_property
+    def is_rational(self) -> bool:
+        """Returns True if the scale is rational."""
+        return all(
+            isinstance(base, int) and exp.denominator == 1 for base, exp in self.factors
+        )
+
     def __mul__(self, other: Scale | int | Fraction) -> Scale:
         if isinstance(other, (int, Fraction)) and not isinstance(other, bool):
             other = self.from_number(other)
@@ -82,13 +89,14 @@ class Scale:
         exps = {base: exp * p for base, exp in self.factors}
         return self._build(exps)
 
-    def to_fraction(self) -> Fraction | None:
+    @cached_property
+    def as_fraction(self) -> Fraction | None:
         """The exact rational value, or None if it isn't rational."""
-        result = Fraction(1)
+        if not self.is_rational:
+            return None
 
+        result = Fraction(1)
         for base, exp in self.factors:
-            if not isinstance(base, int) or exp.denominator != 1:
-                return None
             result *= Fraction(base) ** int(exp)
         return result
 
@@ -111,8 +119,8 @@ class Scale:
 
         ratio = self / other
 
-        fractional_ratio = ratio.to_fraction()
-        if fractional_ratio is not None:
-            return fractional_ratio < 1
-
-        return float(ratio) < 1
+        if ratio.is_rational:
+            assert ratio.as_fraction is not None
+            return ratio.as_fraction < 1
+        else:
+            return float(ratio) < 1
