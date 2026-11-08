@@ -37,3 +37,6 @@ tests = [
     "hypothesis>=6.170.5",
     "pytest>=9.1.1",
 ]
+
+[project.scripts]
+generate-unit-catalogue = "units_lib.unit.catalogue.generate_catalogue:main"
