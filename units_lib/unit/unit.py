@@ -5,8 +5,10 @@ from fractions import Fraction
 from typing import Generic
 
 from units_lib.dimensions import Dimension
-from units_lib.kind.operations import resolve_kind
-from units_lib.kind.typing import K
+from units_lib.exceptions import IncompatibleDimensionError
+from units_lib.kind.null_kind import NullKind, null_kind_for
+from units_lib.kind.operations import get_common_kind, resolve_kind
+from units_lib.kind.typing import K2, K, Kind
 from units_lib.scale import Scale
 from units_lib.unit.si_prefix import NONE as prefixless
 from units_lib.unit.si_prefix import SIPrefix
@@ -88,7 +90,7 @@ class Unit(Generic[K]):
     """A unit - can be an aggregation of various named units."""
 
     terms: tuple[UnitTerm, ...]
-    kind: type[K] | None = None
+    kind: type[K | NullKind] = NullKind
 
     dimension: Dimension = field(init=False, repr=False)
     scale: Scale = field(init=False, repr=False)
@@ -106,10 +108,10 @@ class Unit(Generic[K]):
         object.__setattr__(self, "dimension", dimension)
         object.__setattr__(self, "scale", scale)
 
-        if self.kind is None:
+        if self.kind is NullKind:
             object.__setattr__(self, "kind", resolve_kind(self.dimension))
 
-        if self.kind is not None and self.dimension != self.kind.dimension:
+        if not self.kind.is_null and self.dimension != self.kind.dimension:
             raise ValueError(
                 f"Unit with dimension {self.dimension} cannot have a kind of "
                 f"{self.kind.name} (dimension {self.kind.dimension})"
@@ -166,6 +168,52 @@ class Unit(Generic[K]):
         """The multiplicative inverse of the unit."""
         terms = tuple(term.inverted for term in self.terms)
         return Unit(terms)
+
+    def is_compatible_with(self, other: Unit) -> bool:
+        """Whether this unit is compatible with ``other``.
+
+        I.e. can it be converted to ``other`` or added to/subtracted from
+        ``other``.
+
+        Args:
+            other: The unit to check for compatability
+
+        Returns:
+            True if the given unit is compatible
+        """
+        return self.common_kind_with(other) is not None
+
+    def common_kind_with(self, other: Unit) -> Kind:
+        """The closest common kind with ``other`` or None if units aren't compatible."""
+        if self.dimension != other.dimension:
+            raise IncompatibleDimensionError(
+                self.dimension,
+                other.dimension,
+                "Units of different dimensions cannot have a common kind",
+            )
+
+        if self.kind.is_null or other.kind.is_null:
+            return null_kind_for(self.dimension)
+
+        return get_common_kind(self.kind, other.kind)
+
+    def scale_to(self, other: Unit[K]) -> Scale:
+        """Get the scale factor to convert to the given unit.
+
+        Args:
+            other: The unit for which the calculated scale factor converts to
+
+        Returns:
+            The scale factor to convert to the given unit
+        """
+        if not self.is_compatible_with(other):
+            # TODO: State unit kinds in error message
+            raise ValueError("Cannot convert between units with different kinds")
+        return self.scale / other.scale
+
+    def with_kind(self, kind: type[K2]) -> Unit[K2]:
+        """Get the unit with a different (compatible) kind."""
+        return Unit(self.terms, kind)
 
     def __mul__(self, other: Unit) -> Unit:
         if not isinstance(other, Unit):

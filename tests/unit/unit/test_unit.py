@@ -351,6 +351,7 @@ class TestUnit:
         class LengthKind:
             name = "Length"
             dimension = make_length()
+            is_null = False
 
         # ACT
         unit = Unit((UnitTerm(metre),), kind=LengthKind)  # type: ignore[arg-type]
@@ -363,6 +364,7 @@ class TestUnit:
         class TimeKind:
             name = "Time"
             dimension = make_time()
+            is_null = False
 
         # ACT / Assert
         with pytest.raises(ValueError, match="cannot have a kind of"):
@@ -758,6 +760,7 @@ class TestUnit:
         class LengthKind:
             name = "Length"
             dimension = make_length()
+            is_null = False
 
         unit = Unit((UnitTerm(metre),), kind=LengthKind)  # type: ignore[arg-type]
 

@@ -3,6 +3,7 @@ from fractions import Fraction
 from typing import Generic
 
 from units_lib.dimensions import Dimension
+from units_lib.kind.null_kind import NullKind
 from units_lib.kind.typing import K
 from units_lib.scale import Scale
 
@@ -25,5 +26,5 @@ class AffineUnit(Generic[K]):
         return self.delta.dimension
 
     @property
-    def kind(self) -> type[K] | None:
+    def kind(self) -> type[K | NullKind]:
         return self.delta.kind
