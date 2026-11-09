@@ -1,8 +1,9 @@
-from decimal import Decimal
 from fractions import Fraction
 from typing import TypeVar
 
-Numeric = float | Decimal | Fraction
+Numeric = int | float | Fraction
+
+NumericClass = (int, float, Fraction)
 
 V = TypeVar("V", bound=Numeric)
 

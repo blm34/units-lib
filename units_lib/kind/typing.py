@@ -13,3 +13,4 @@ class BaseKind:
 
 Kind: TypeAlias = type[BaseKind]
 K = TypeVar("K", bound=BaseKind)
+K2 = TypeVar("K2", bound=BaseKind)
