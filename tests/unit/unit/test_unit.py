@@ -6,7 +6,9 @@ from fractions import Fraction
 import pytest
 
 from units_lib.dimensions import BaseDimension, Dimension
+from units_lib.kind.null_kind import NullKind
 from units_lib.kind.operations import resolve_kind
+from units_lib.quantity.quantity import Quantity
 from units_lib.scale import Scale
 from units_lib.unit.si_prefix import NONE as NO_PREFIX
 from units_lib.unit.si_prefix import SIPrefix
@@ -27,6 +29,31 @@ def make_scale(factor: int | Fraction) -> Scale:
 
 def make_prefix(name: str, symbol: str, factor: int | Fraction) -> SIPrefix:
     return SIPrefix(name=name, symbol=symbol, scale=make_scale(factor))
+
+
+def make_kind(
+    name: str,
+    dimension: Dimension,
+    *,
+    compatible=True,
+    common=None,
+):
+    """Build a stub kind whose compatibility behaviour is fixed by the caller."""
+
+    class StubKind:
+        is_null = False
+
+        @classmethod
+        def is_compatible(cls, other):
+            return compatible
+
+        @classmethod
+        def common_with(cls, other):
+            return common
+
+    StubKind.name = name  # type: ignore[attr-defined]
+    StubKind.dimension = dimension  # type: ignore[attr-defined]
+    return StubKind
 
 
 @pytest.fixture
@@ -351,6 +378,7 @@ class TestUnit:
         class LengthKind:
             name = "Length"
             dimension = make_length()
+            is_null = False
 
         # ACT
         unit = Unit((UnitTerm(metre),), kind=LengthKind)  # type: ignore[arg-type]
@@ -363,6 +391,7 @@ class TestUnit:
         class TimeKind:
             name = "Time"
             dimension = make_time()
+            is_null = False
 
         # ACT / Assert
         with pytest.raises(ValueError, match="cannot have a kind of"):
@@ -758,6 +787,7 @@ class TestUnit:
         class LengthKind:
             name = "Length"
             dimension = make_length()
+            is_null = False
 
         unit = Unit((UnitTerm(metre),), kind=LengthKind)  # type: ignore[arg-type]
 
@@ -790,3 +820,232 @@ class TestUnit:
         # ASSERT
         assert "dimension=" not in text
         assert "scale=" not in text
+
+    def test_is_compatible_with_true_for_same_kind_but_different_scale(
+        self, metre, kilometre
+    ):
+        # ARRANGE
+        a = Unit((UnitTerm(metre),))
+        b = Unit((UnitTerm(kilometre),))
+
+        # ACT
+        result = a.is_compatible_with(b)
+
+        # ASSERT
+        assert result is True
+
+    def test_is_compatible_with_false_for_different_dimensions(self, metre, second):
+        # ARRANGE
+        a = Unit((UnitTerm(metre),))
+        b = Unit((UnitTerm(second),))
+
+        # ACT
+        result = a.is_compatible_with(b)
+
+        # ASSERT
+        assert result is False
+
+    def test_is_compatible_with_delegates_to_kind_when_compatible(self, metre):
+        # ARRANGE
+        expected = object()
+        kind = make_kind("Length", make_length(), compatible=expected)
+        unit = Unit((UnitTerm(metre),), kind=kind)  # type: ignore[arg-type]
+
+        # ACT
+        result = unit.is_compatible_with(unit)
+
+        # ASSERT
+        assert result is expected
+
+    def test_is_compatible_with_delegates_to_kind_when_incompatible(self, metre):
+        # ARRANGE
+        expected = object()
+        kind = make_kind("Length", make_length(), compatible=expected)
+        unit = Unit((UnitTerm(metre),), kind=kind)  # type: ignore[arg-type]
+
+        # ACT
+        result = unit.is_compatible_with(unit)
+
+        # ASSERT
+        assert result is expected
+
+    def test_common_kind_with_returns_kind_from_kind_common_with(self, metre):
+        # ARRANGE
+        sentinel = object()
+        kind = make_kind("Length", make_length(), common=sentinel)
+        unit = Unit((UnitTerm(metre),), kind=kind)  # type: ignore[arg-type]
+
+        # ACT
+        result = unit.common_kind_with(unit)
+
+        # ASSERT
+        assert result is sentinel
+
+    def test_common_kind_with_same_kind_returns_that_kind(self, metre, kilometre):
+        # ARRANGE
+        a = Unit((UnitTerm(metre),))
+        b = Unit((UnitTerm(kilometre),))
+
+        # ACT
+        result = a.common_kind_with(b)
+
+        # ASSERT
+        assert result == a.kind
+
+    def test_scale_to_same_unit_is_identity(self, metre):
+        # ARRANGE
+        unit = Unit((UnitTerm(metre),))
+
+        # ACT
+        scale = unit.scale_to(unit)
+
+        # ASSERT
+        assert scale == Scale()
+
+    def test_scale_to_larger_unit_gives_fractional_scale(self, metre, kilometre):
+        # ARRANGE
+        small = Unit((UnitTerm(metre),))
+        large = Unit((UnitTerm(kilometre),))
+
+        # ACT
+        scale = small.scale_to(large)
+
+        # ASSERT
+        assert scale == make_scale(Fraction(1, 1000))
+
+    def test_scale_to_smaller_unit_gives_multiplying_scale(self, metre, kilometre):
+        # ARRANGE
+        small = Unit((UnitTerm(metre),))
+        large = Unit((UnitTerm(kilometre),))
+
+        # ACT
+        scale = large.scale_to(small)
+
+        # ASSERT
+        assert scale == make_scale(1000)
+
+    def test_scale_to_accounts_for_prefix_and_power(self, metre, kilo):
+        # ARRANGE
+        km2 = Unit((UnitTerm(metre, prefix=kilo, power=2),))
+        m2 = Unit((UnitTerm(metre, power=2),))
+
+        # ACT
+        scale = km2.scale_to(m2)
+
+        # ASSERT
+        assert scale == make_scale(1000**2)
+
+    def test_scale_to_raises_value_error_for_incompatible_kinds(self, metre, second):
+        # ARRANGE
+        a = Unit((UnitTerm(metre),))
+        b = Unit((UnitTerm(second),))
+
+        # ACT / Assert
+        with pytest.raises(ValueError, match="different kinds"):
+            a.scale_to(b)
+
+    def test_with_kind_returns_unit_with_given_kind(self, metre):
+        # ARRANGE
+        kind = make_kind("Length", make_length())
+        unit = Unit((UnitTerm(metre),))
+
+        # ACT
+        result = unit.with_kind(kind)  # type: ignore[arg-type]
+
+        # ASSERT
+        assert result.kind is kind
+
+    def test_with_kind_preserves_terms_dimension_and_scale(self, kilometre, second):
+        # ARRANGE
+        kind = make_kind("Velocity", make_length() / make_time())
+        unit = Unit((UnitTerm(kilometre), UnitTerm(second, power=-1)))
+
+        # ACT
+        result = unit.with_kind(kind)  # type: ignore[arg-type]
+
+        # ASSERT
+        assert result.terms == unit.terms
+        assert result.dimension == unit.dimension
+        assert result.scale == unit.scale
+
+    def test_with_kind_does_not_modify_original_unit(self, metre):
+        # ARRANGE
+        kind = make_kind("Length", make_length())
+        unit = Unit((UnitTerm(metre),))
+        original_kind = unit.kind
+
+        # ACT
+        unit.with_kind(kind)  # type: ignore[arg-type]
+
+        # ASSERT
+        assert unit.kind is original_kind
+
+    def test_with_kind_returns_a_new_unit_instance(self, metre):
+        # ARRANGE
+        kind = make_kind("Length", make_length())
+        unit = Unit((UnitTerm(metre),))
+
+        # ACT
+        result = unit.with_kind(kind)  # type: ignore[arg-type]
+
+        # ASSERT
+        assert result is not unit
+
+    def test_with_kind_raises_value_error_when_kind_dimension_mismatches(self, metre):
+        # ARRANGE
+        kind = make_kind("Time", make_time())
+        unit = Unit((UnitTerm(metre),))
+
+        # ACT / Assert
+        with pytest.raises(ValueError, match="cannot have a kind of"):
+            unit.with_kind(kind)  # type: ignore[arg-type]
+
+    def test_with_kind_null_kind_resolves_kind_from_dimension(self, metre):
+        # ARRANGE
+        unit = Unit((UnitTerm(metre),))
+
+        # ACT
+        with pytest.raises(
+            ValueError, match="Cannot set the kind of a unit to a null kind"
+        ):
+            unit.with_kind(NullKind)
+
+    @pytest.mark.parametrize("value", [5, 2.5, Fraction(1, 3)])
+    def test_rmul_returns_quantity_for_numeric_value(self, metre, value):
+        # ARRANGE
+        unit = Unit((UnitTerm(metre),))
+
+        # ACT
+        result = value * unit
+
+        # ASSERT
+        assert isinstance(result, Quantity)
+
+    def test_rmul_quantity_holds_value_and_unit(self, metre):
+        # ARRANGE
+        unit = Unit((UnitTerm(metre),))
+
+        # ACT
+        result = 5 * unit
+
+        # ASSERT
+        assert result.value == 5
+        assert result.unit == unit
+
+    def test_rmul_returns_not_implemented_for_non_numeric_value(self, metre):
+        # ARRANGE
+        unit = Unit((UnitTerm(metre),))
+
+        # ACT
+        result = unit.__rmul__("2")  # pyright: ignore[reportArgumentType]
+
+        # ASSERT
+        assert result is NotImplemented
+
+    def test_rmul_with_non_numeric_operator_raises_type_error(self, metre):
+        # ARRANGE
+        unit = Unit((UnitTerm(metre),))
+
+        # ACT / Assert
+        with pytest.raises(TypeError):
+            "2" * unit  # type: ignore[operator]
