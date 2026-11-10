@@ -4,9 +4,9 @@ from dataclasses import dataclass, field
 from fractions import Fraction
 from typing import Generic
 
-from units_lib._types import K
 from units_lib.dimensions import Dimension
-from units_lib.kind import resolve_kind
+from units_lib.kind.operations import resolve_kind
+from units_lib.kind.typing import K
 from units_lib.scale import Scale
 from units_lib.unit.si_prefix import NONE as prefixless
 from units_lib.unit.si_prefix import SIPrefix

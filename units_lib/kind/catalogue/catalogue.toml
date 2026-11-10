@@ -1,0 +1,205 @@
+# Definitions of the kinds exposed by `units_lib.kind.catalogue.catalogue`.
+#
+# After editing this file, regenerate the type stub:
+#
+# ```bash
+# generate-kind-catalogue
+# ```
+#
+# Each table in `kind` table defines one kind. The dimension of the kind is
+# defined by one of:
+#     * An inherited kind
+#     * An alias of a kind
+#     * A dimension definition.
+#
+# Keys
+# ----
+# inherits    Name of a kind that this one inherits
+# alias       Name of a kind that this is an alias for
+# dimension   The dimension for the kind. A product of powers of SI base dimensions
+# default     Set to true for the kind that is the default for its dimension
+
+# ----- Dimensionless -----
+
+[kind.Dimensionless]
+dimension = {}
+
+[kind.Angle]
+dimension = {}
+
+[kind.SolidAngle]
+dimension = {}
+
+# ----- SI Base Dimensions -----
+
+[kind.Time]
+dimension = { time = 1 }
+default = true
+
+[kind.Length]
+dimension = { length = 1 }
+default = true
+
+[kind.Mass]
+dimension = { mass = 1 }
+default = true
+
+[kind.ElectricCurrent]
+dimension = { electric_current = 1 }
+default = true
+
+[kind.Temperature]
+dimension = { temperature = 1 }
+default = true
+
+[kind.AmountOfSubstance]
+dimension = { amount_of_substance = 1 }
+default = true
+
+[kind.LuminousIntensity]
+dimension = { luminous_intensity = 1 }
+default = true
+
+[kind.Distance]
+inherits = "Length"
+dimension = { length = 1 }
+
+[kind.Displacement]
+inherits = "Length"
+dimension = { length = 1 }
+
+[kind.LuminousFlux]
+inherits = "LuminousIntensity"
+dimension = { luminous_intensity = 1 }
+
+# ----- Length Powers -----
+
+[kind.Area]
+dimension = { length = 2 }
+
+[kind.Volume]
+dimension = { length = 3 }
+
+# ----- Distance Derivatives -----
+
+[kind.Velocity]
+dimension = { length = 1, time = -1 }
+default = true
+
+[kind.Acceleration]
+dimension = { length = 1, time = -2 }
+default = true
+
+[kind.Jerk]
+dimension = { length = 1, time = -3 }
+default = true
+
+[kind.Snap]
+dimension = { length = 1, time = -4 }
+default = true
+
+[kind.Jounce]
+alias = "Snap"
+dimension = { length = 1, time = -4 }
+
+[kind.Crackle]
+dimension = { length = 1, time = -5 }
+default = true
+
+[kind.Pop]
+dimension = { length = 1, time = -6 }
+default = true
+
+# ----- Radioactivity -----
+
+[kind.Radioactivity]
+dimension = { time = -1 }
+
+[kind.AbsorbedDose]
+dimension = { length = 2, time = -2 }
+
+[kind.Kerma]
+dimension = { length = 2, time = -2 }
+
+[kind.DoseEquivalent]
+dimension = { length = 2, time = -2 }
+
+# ----- Mechanics -----
+
+[kind.Force]
+dimension = { mass = 1, length = 1, time = -2 }
+
+[kind.Energy]
+dimension = { mass = 1, length = 2, time = -2 }
+
+[kind.Work]
+inherits = "Energy"
+dimension = { mass = 1, length = 2, time = -2 }
+
+[kind.Torque]
+dimension = { mass = 1, length = 2, time = -2 }
+
+[kind.Power]
+dimension = { mass = 1, length = 2, time = -3 }
+
+[kind.Pressure]
+dimension = { mass = 1, length = -1, time = -2}
+
+[kind.Stress]
+dimension = { mass = 1, length = -1, time = -2}
+
+# ----- Electrical/Magnetic -----
+
+[kind.ElectricCharge]
+dimension = { electric_current = 1, time = 1}
+
+[kind.ElectricPotentialDifference]
+dimension = { mass = 1, length = 2, time = -3, electric_current = -1 }
+
+[kind.ElectricResistance]
+dimension = { mass = 1, length = 2, time = -3, electric_current = -2 }
+
+[kind.ElectricConductance]
+dimension = { mass = -1, length = -2, time = 3, electric_current = 2 }
+
+[kind.Capacitance]
+dimension = { mass = -1, length = -2, time = 4, electric_current = 2 }
+
+[kind.Inductance]
+dimension = { mass = 1, length = 2, time = -2, electric_current = -2 }
+
+[kind.MagneticFlux]
+dimension = { mass = 1, length = 2, time = -2, electric_current = -1 }
+
+[kind.MagneticFluxDensity]
+dimension = { mass = 1, time = -2, electric_current = -1 }
+
+# ----- Thermodynamic -----
+
+[kind.AmountOfHeat]
+inherits = "Energy"
+dimension = { mass = 1, length = 2, time = -2 }
+
+# ----- Electromagnetic -----
+
+[kind.RadiantFlux]
+inherits = "Power"
+dimension = { mass = 1, length = 2, time = -3 }
+
+[kind.Illuminance]
+dimension = { luminous_intensity = 1, length = -2 }
+
+# ----- Chemical -----
+
+[kind.CatalyticActivity]
+dimension = { amount_of_substance = 1, time = -1 }
+
+# ----- Misc -----
+
+[kind.Frequency]
+dimension = { time = -1 }
+
+[kind.Intensity]
+dimension = { mass = 1, time = -3 }
+
+
