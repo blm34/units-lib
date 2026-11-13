@@ -14,6 +14,7 @@ from units_lib import kind
 from units_lib.kind import Kind
 from units_lib.unit import si_prefix
 from units_lib.unit.si_prefix import SIPrefix, iter_prefixes
+from units_lib.utils.fraction import convert_to_fraction
 
 DATA_FILE_NAME = "catalogue.toml"
 
@@ -87,27 +88,6 @@ def _get_kind(key: str) -> type[Kind]:
     return unit_kind
 
 
-def _fraction(value: int | str, context: str) -> Fraction:
-    """Convert `value` to a Fraction.
-
-    Args:
-        value: The value to convert to a fraction
-        context: The context that `value` has come from (for error messages)
-
-    Returns:
-        The parsed fraction
-    """
-    if isinstance(value, bool) or not isinstance(value, (int, str)):
-        raise TypeError(
-            f"{context}: expected an int or a fraction string such as '1/1000', "
-            f"got {value!r}"
-        )
-    try:
-        return Fraction(value)
-    except ValueError as error:
-        raise ValueError(f"{context}: invalid fraction {value!r}") from error
-
-
 def _parse_entry(
     entry: Mapping[str, Any],
     defaults: Mapping[str, str],
@@ -154,8 +134,10 @@ def _parse_entry(
         kind=unit_kind,
         min_prefix=min_prefix,
         max_prefix=max_prefix,
-        scale=_fraction(entry.get("scale", 1), f"{label}.scale"),
-        offset=None if offset is None else _fraction(offset, f"{label}.offset"),
+        scale=convert_to_fraction(entry.get("scale", 1), f"{label}.scale"),
+        offset=None
+        if offset is None
+        else convert_to_fraction(offset, f"{label}.offset"),
     )
 
 
