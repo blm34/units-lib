@@ -1,3 +1,4 @@
+# TODO: Apply a flyweight pattern to dimensions?
 from __future__ import annotations
 
 from dataclasses import dataclass
