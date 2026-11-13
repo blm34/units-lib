@@ -36,10 +36,7 @@ _ALLOWED_KEYS = frozenset(
 
 @dataclass(frozen=True, slots=True)
 class UnitSpec:
-    """The definition of one base (unprefixed) unit, as read from the TOML file.
-
-    Exactly one of ``dimension`` and ``terms`` is not ``None``.
-    """
+    """The definition of one base (unprefixed) unit, as read from the TOML file."""
 
     name: str
     symbol: str
@@ -79,7 +76,7 @@ def _get_prefix(key: str) -> SIPrefix:
 
 
 def _get_kind(key: str) -> type[Kind]:
-    """Look up a kinD oF usint by its name in ``kind``."""
+    """Look up a kind of unit by its name in ``kind``."""
     unit_kind = getattr(kind, key, None)
     if unit_kind is None:
         raise ValueError(f"Unknown unit kind {key!r}")
@@ -123,8 +120,6 @@ def _parse_entry(
         "max_prefix",
         defaults.get("max_prefix", FALLBACK_MAX_PREFIX),
     )
-    _get_prefix(min_prefix)
-    _get_prefix(max_prefix)
 
     offset = entry.get("offset")
 
@@ -154,8 +149,7 @@ def load_specs(path: Path | None = None) -> dict[str, UnitSpec]:
     """
     # TODO: Can this if/else be tidied up to just get path if None?
     if path is None:
-        package = __package__ or "units_lib"
-        raw = (resources.files(package) / DATA_FILE_NAME).read_bytes()
+        raw = (resources.files(__package__) / DATA_FILE_NAME).read_bytes()
     else:
         raw = path.read_bytes()
 
