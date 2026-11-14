@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from functools import cache
 
+from units_lib.kind.catalogue import catalogue as kind
+from units_lib.kind.real_kind import RealKind
 from units_lib.scale import Scale
 from units_lib.unit.affine_unit import AffineUnit
 from units_lib.unit.unit import NamedUnit, Unit, UnitTerm
@@ -20,6 +22,16 @@ def _catalogue_index() -> dict[str, CatalogueUnit]:
     return build_index(load_specs())
 
 
+def _get_kind(key: str) -> type[RealKind]:
+    """Look up a kind of unit by its name in ``kind``."""
+    unit_kind = getattr(kind, key, None)
+    if unit_kind is None:
+        raise ValueError(f"Unknown unit kind {key!r}")
+    if not issubclass(unit_kind, RealKind):
+        raise TypeError(f"{key!r} is not a kind of unit")
+    return unit_kind
+
+
 @cache
 def _named_unit(spec: UnitSpec) -> NamedUnit:
     """Create a ``NamedUnit`` from a ``UnitSpec``.
@@ -30,7 +42,8 @@ def _named_unit(spec: UnitSpec) -> NamedUnit:
     Returns:
         The domain object named unit.
     """
-    dimension = spec.kind.dimension
+    kind = _get_kind(spec.kind)
+    dimension = kind.dimension
     ref_scale = Scale.from_number(spec.scale)
 
     return NamedUnit(
@@ -54,7 +67,7 @@ def _catalogue_to_domain(entry: CatalogueUnit) -> Unit | AffineUnit:
 
     named_unit = _named_unit(spec)
     unit_term = UnitTerm(named_unit, entry.prefix)
-    unit = Unit(terms=(unit_term,), kind=spec.kind)
+    unit = Unit(terms=(unit_term,), kind=_get_kind(spec.kind))
 
     if spec.offset is None:
         return unit
@@ -73,7 +86,7 @@ def __getattr__(name: str) -> Unit | AffineUnit:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
     value = _catalogue_to_domain(entry)
-    globals()[name] = value  # cache: __getattr__ is only called on a miss
+    globals()[name] = value
     return value
 
 

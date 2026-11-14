@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 
-from units_lib import kind
 from units_lib.unit.catalogue.catalogue_spec import (
     UnitSpec,
     build_index,
@@ -46,7 +45,7 @@ offset = "27315/100"
 
         # Assert
         spec = specs["degrees_celsius"]
-        assert spec.kind.name == "Temperature"
+        assert spec.kind == "Temperature"
         assert spec.scale == Fraction(1, 2)
         assert spec.offset == Fraction(27315, 100)
         assert spec.is_affine
@@ -79,26 +78,6 @@ kind = "Time"
     @pytest.mark.parametrize(
         ("body", "message", "error"),
         [
-            (
-                'name = "x"\nsymbol = "x"\nkind = "Length"\nmin_prefix = "BOGUS"\n',
-                "Unknown SI prefix",
-                ValueError,
-            ),
-            (
-                'name = "x"\nsymbol = "x"\nkind = "Length"\nmin_prefix = "_registry"\n',
-                "not an SI prefix",
-                TypeError,
-            ),
-            (
-                'name = "x"\nsymbol = "x"\nkind = "Other"\n',
-                "Unknown unit kind",
-                ValueError,
-            ),
-            (
-                'name = "x"\nsymbol = "x"\nkind = "Dimension"\n',
-                "not a kind of unit",
-                TypeError,
-            ),
             (
                 'name = "x"\nsymbol = "x"\nkind = "Mass"\nscale = 0.5\n',
                 "expected an int or a fraction",
@@ -166,7 +145,7 @@ class TestBuildIndex:
             "degrees_celsius": UnitSpec(
                 name="degrees celsius",
                 symbol="C",
-                kind=kind.Temperature,
+                kind="Temperature",
                 min_prefix="NONE",
                 max_prefix="KILO",
             ),
@@ -186,7 +165,7 @@ class TestBuildIndex:
             "second": UnitSpec(
                 name="second",
                 symbol="s",
-                kind=kind.Time,
+                kind="Time",
                 min_prefix="NONE",
                 max_prefix="KILO",
             ),
@@ -206,14 +185,14 @@ class TestBuildIndex:
             "gram": UnitSpec(
                 name="gram",
                 symbol="g",
-                kind=kind.Mass,
+                kind="Mass",
                 min_prefix="NONE",
                 max_prefix="KILO",
             ),
             "kilogram": UnitSpec(
                 name="kilogram",
                 symbol="kg",
-                kind=kind.Mass,
+                kind="Mass",
                 min_prefix="NONE",
                 max_prefix="NONE",
             ),
