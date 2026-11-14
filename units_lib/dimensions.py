@@ -4,16 +4,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum, unique
 from fractions import Fraction
-from typing import cast
+from typing import Self, cast
 
 PowersTuple = tuple[
-    Fraction | int,
-    Fraction | int,
-    Fraction | int,
-    Fraction | int,
-    Fraction | int,
-    Fraction | int,
-    Fraction | int,
+    Fraction,
+    Fraction,
+    Fraction,
+    Fraction,
+    Fraction,
+    Fraction,
+    Fraction,
 ]
 
 
@@ -63,7 +63,7 @@ class Dimension:
         object.__setattr__(self, "exps", frac_exps)
 
     @classmethod
-    def base(cls, dim: BaseDimension) -> Dimension:
+    def base(cls, dim: BaseDimension) -> Self:
         """Get the `Dimension` representing the given dimension to the first power."""
         exps = cast(
             PowersTuple,
@@ -72,9 +72,38 @@ class Dimension:
         return cls(exps)
 
     @classmethod
-    def dimensionless(cls) -> Dimension:
+    def dimensionless(cls) -> Self:
         """Get a dimensionless `Dimension`."""
         return cls(_ZERO)
+
+    @classmethod
+    def from_dict(cls, dictionary: dict[str, Fraction]) -> Self:
+        """Create a dimension from a dictionary of (base, power) pairs.
+
+        Dictionary of the format {'time': Fraction(1, 2)}, i.e. keys are all
+        lowercase with '_' seperated words.
+
+        Args:
+            dictionary: The dictionary defining the dimension
+
+        Returns:
+            The corresponding Dimension
+        """
+        powers: list[Fraction] = []
+        for idx in range(len(BaseDimension)):
+            name = BaseDimension(idx).name.lower()
+            powers.append(dictionary.pop(name, Fraction(0)))
+
+        if len(dictionary) != 0:
+            raise ValueError(
+                f"Unrecognised keys in powers dictionary: {sorted(dictionary.keys())!r}"
+            )
+
+        power_tuple = cast(
+            PowersTuple,
+            tuple(powers),
+        )
+        return cls(power_tuple)
 
     def __mul__(self, other: Dimension) -> Dimension:
         """Result of multiplying two dimensions together."""
