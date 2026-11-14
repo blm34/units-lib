@@ -40,3 +40,4 @@ tests = [
 
 [project.scripts]
 generate-unit-catalogue = "units_lib.unit.catalogue.generate_catalogue:main"
+generate-kind-catalogue = "units_lib.kind.catalogue.generate_catalogue:main"
