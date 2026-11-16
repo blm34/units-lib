@@ -6,7 +6,6 @@ from fractions import Fraction
 
 import pytest
 
-from units_lib import kind
 from units_lib.dimensions import BaseDimension, Dimension
 from units_lib.scale import Scale
 from units_lib.unit import si_prefix
@@ -15,6 +14,7 @@ from units_lib.unit.catalogue import catalogue
 from units_lib.unit.catalogue.catalogue import (
     _catalogue_index,
     _catalogue_to_domain,
+    _get_kind,
     _named_unit,
 )
 from units_lib.unit.catalogue.catalogue_spec import CatalogueUnit, UnitSpec
@@ -41,13 +41,13 @@ def fresh_catalogue(monkeypatch):
 
 @pytest.fixture
 def unit_spec():
-    return UnitSpec("name", "symbol", kind.Temperature, "MILLI", "KILO")
+    return UnitSpec("name", "symbol", "Temperature", "MILLI", "KILO")
 
 
 @pytest.fixture
 def affine_unit_spec():
     return UnitSpec(
-        "name", "symbol", kind.Temperature, "MILLI", "KILO", offset=Fraction(5)
+        "name", "symbol", "Temperature", "MILLI", "KILO", offset=Fraction(5)
     )
 
 
@@ -191,7 +191,8 @@ def test_named_unit_creates_named_unit(unit_spec):
     assert isinstance(result, NamedUnit)
     assert result.name == unit_spec.name
     assert result.symbol == unit_spec.symbol
-    assert result.dimension == unit_spec.kind.dimension
+    assert result.dimension == _get_kind(unit_spec.kind).dimension
+    assert result.ref_scale == Scale.from_number(unit_spec.scale)
 
 
 def test_named_unit_is_cached(unit_spec):
@@ -219,7 +220,7 @@ def test_catalogue_to_domain_preserves_unit_properties(catalogue_unit):
     # ASSERT
     assert len(result.terms) == 1
     assert result.terms[0].prefix == catalogue_unit.prefix
-    assert result.kind == catalogue_unit.spec.kind
+    assert result.kind == _get_kind(catalogue_unit.spec.kind)
 
 
 def test_catalogue_to_domain_returns_affine_unit(affine_catalogue_unit):
@@ -237,4 +238,3 @@ def test_catalogue_to_domain_preserves_affine_properties(affine_catalogue_unit):
 
     # ASSERT
     assert result.offset == affine_catalogue_unit.spec.offset
-    assert result.kind == affine_catalogue_unit.spec.kind

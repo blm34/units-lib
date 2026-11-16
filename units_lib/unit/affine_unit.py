@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from fractions import Fraction
 from typing import Generic
 
-from units_lib._types import K
 from units_lib.dimensions import Dimension
+from units_lib.kind.typing import K
 from units_lib.scale import Scale
 
 from .unit import Unit

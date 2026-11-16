@@ -98,6 +98,116 @@ class TestDimension:
         # ASSERT
         assert dim1 == dim2
 
+    def test_from_dict_single_dimension(self):
+        # ARRANGE
+        dictionary = {"length": Fraction(1)}
+
+        # ACT
+        result = Dimension.from_dict(dictionary)
+
+        # ASSERT
+        assert result == Dimension.base(BaseDimension.LENGTH)
+
+    def test_from_dict_multiple_dimensions(self):
+        # ARRANGE
+        dictionary = {
+            "time": Fraction(-2),
+            "length": Fraction(1),
+            "mass": Fraction(1),
+        }
+
+        # ACT
+        result = Dimension.from_dict(dictionary)
+
+        # ASSERT
+        assert result.exps[BaseDimension.TIME.index] == -2
+        assert result.exps[BaseDimension.LENGTH.index] == 1
+        assert result.exps[BaseDimension.MASS.index] == 1
+
+    def test_from_dict_fractional_exponents(self):
+        # ARRANGE
+        dictionary = {
+            "length": Fraction(1, 2),
+            "time": Fraction(-1, 3),
+        }
+
+        # ACT
+        result = Dimension.from_dict(dictionary)
+
+        # ASSERT
+        assert result.exps[BaseDimension.LENGTH.index] == Fraction(1, 2)
+        assert result.exps[BaseDimension.TIME.index] == Fraction(-1, 3)
+
+    def test_from_dict_missing_keys_default_to_zero(self):
+        # ARRANGE
+        dictionary = {"mass": Fraction(2)}
+
+        # ACT
+        result = Dimension.from_dict(dictionary)
+
+        # ASSERT
+        assert all(
+            result.exps[base.index] == 0
+            for base in BaseDimension
+            if base.name != "MASS"
+        )
+
+    def test_from_dict_empty_dictionary_is_dimensionless(self):
+        # ARRANGE
+        dictionary = {}
+
+        # ACT
+        result = Dimension.from_dict(dictionary)
+
+        # ASSERT
+        assert result == Dimension.dimensionless()
+
+    def test_from_dict_consumes_dictionary(self):
+        # ARRANGE
+        dictionary = {
+            "time": Fraction(1),
+            "length": Fraction(2),
+        }
+
+        # ACT
+        Dimension.from_dict(dictionary)
+
+        # ASSERT
+        assert dictionary == {}
+
+    def test_from_dict_unrecognised_key_error_message(self):
+        # ARRANGE
+        dictionary = {
+            "length": Fraction(1),
+            "distance": Fraction(2),
+        }
+
+        # ACT
+        with pytest.raises(ValueError) as error:
+            Dimension.from_dict(dictionary)
+
+        # ASSERT
+        assert str(error.value) == (
+            "Unrecognised keys in powers dictionary: ['distance']"
+        )
+
+    def test_from_dict_multiple_unrecognised_keys_are_sorted(self):
+        # ARRANGE
+        dictionary = {
+            "zebra": Fraction(1),
+            "length": Fraction(1),
+            "apple": Fraction(2),
+        }
+
+        # ACT
+        with pytest.raises(ValueError) as error:
+            Dimension.from_dict(dictionary)
+
+        # ASSERT
+        assert str(error.value) == (
+            "Unrecognised keys in powers dictionary: ['apple', 'zebra']"
+        )
+
     def test_equal_dimensions_compare_equal(self, make_dim):
         # ARRANGE
         first = make_dim(length=1, time=-1)

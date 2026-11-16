@@ -6,7 +6,7 @@ from fractions import Fraction
 import pytest
 
 from units_lib.dimensions import BaseDimension, Dimension
-from units_lib.kind import resolve_kind
+from units_lib.kind.operations import resolve_kind
 from units_lib.scale import Scale
 from units_lib.unit.si_prefix import NONE as NO_PREFIX
 from units_lib.unit.si_prefix import SIPrefix

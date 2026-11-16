@@ -10,10 +10,9 @@ from importlib import resources
 from pathlib import Path
 from typing import Any
 
-from units_lib import kind
-from units_lib.kind import Kind
 from units_lib.unit import si_prefix
 from units_lib.unit.si_prefix import SIPrefix, iter_prefixes
+from units_lib.utils.fraction import convert_to_fraction
 
 DATA_FILE_NAME = "catalogue.toml"
 
@@ -35,14 +34,11 @@ _ALLOWED_KEYS = frozenset(
 
 @dataclass(frozen=True, slots=True)
 class UnitSpec:
-    """The definition of one base (unprefixed) unit, as read from the TOML file.
-
-    Exactly one of ``dimension`` and ``terms`` is not ``None``.
-    """
+    """The definition of one base (unprefixed) unit, as read from the TOML file."""
 
     name: str
     symbol: str
-    kind: type[Kind]
+    kind: str
     min_prefix: str
     max_prefix: str
     scale: Fraction = Fraction(1)
@@ -77,37 +73,6 @@ def _get_prefix(key: str) -> SIPrefix:
     return prefix
 
 
-def _get_kind(key: str) -> type[Kind]:
-    """Look up a kinD oF usint by its name in ``kind``."""
-    unit_kind = getattr(kind, key, None)
-    if unit_kind is None:
-        raise ValueError(f"Unknown unit kind {key!r}")
-    if not issubclass(unit_kind, Kind):
-        raise TypeError(f"{key!r} is not a kind of unit")
-    return unit_kind
-
-
-def _fraction(value: int | str, context: str) -> Fraction:
-    """Convert `value` to a Fraction.
-
-    Args:
-        value: The value to convert to a fraction
-        context: The context that `value` has come from (for error messages)
-
-    Returns:
-        The parsed fraction
-    """
-    if isinstance(value, bool) or not isinstance(value, (int, str)):
-        raise TypeError(
-            f"{context}: expected an int or a fraction string such as '1/1000', "
-            f"got {value!r}"
-        )
-    try:
-        return Fraction(value)
-    except ValueError as error:
-        raise ValueError(f"{context}: invalid fraction {value!r}") from error
-
-
 def _parse_entry(
     entry: Mapping[str, Any],
     defaults: Mapping[str, str],
@@ -133,8 +98,6 @@ def _parse_entry(
         if required not in entry:
             raise ValueError(f"{label}: missing required key {required!r}")
 
-    unit_kind = _get_kind(entry["kind"])
-
     min_prefix = entry.get(
         "min_prefix",
         defaults.get("min_prefix", FALLBACK_MIN_PREFIX),
@@ -143,19 +106,19 @@ def _parse_entry(
         "max_prefix",
         defaults.get("max_prefix", FALLBACK_MAX_PREFIX),
     )
-    _get_prefix(min_prefix)
-    _get_prefix(max_prefix)
 
     offset = entry.get("offset")
 
     return UnitSpec(
         name=entry["name"],
         symbol=entry["symbol"],
-        kind=unit_kind,
+        kind=entry["kind"],
         min_prefix=min_prefix,
         max_prefix=max_prefix,
-        scale=_fraction(entry.get("scale", 1), f"{label}.scale"),
-        offset=None if offset is None else _fraction(offset, f"{label}.offset"),
+        scale=convert_to_fraction(entry.get("scale", 1), f"{label}.scale"),
+        offset=None
+        if offset is None
+        else convert_to_fraction(offset, f"{label}.offset"),
     )
 
 
@@ -170,14 +133,10 @@ def load_specs(path: Path | None = None) -> dict[str, UnitSpec]:
     Returns:
         Dictionary mapping unit names to their spec
     """
-    # TODO: Can this if/else be tidied up to just get path if None?
-    if path is None:
-        package = __package__ or "units_lib"
-        raw = (resources.files(package) / DATA_FILE_NAME).read_bytes()
-    else:
-        raw = path.read_bytes()
+    package = __package__ or "units_lib.unit.catalogue"
+    source = resources.files(package).joinpath(DATA_FILE_NAME) if path is None else path
+    data = tomllib.loads(source.read_text(encoding="utf-8"))
 
-    data = tomllib.loads(raw.decode("utf-8"))
     defaults = data.get("defaults", {})
 
     specs: dict[str, UnitSpec] = {}
