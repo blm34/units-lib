@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import gc
+import weakref
 from dataclasses import FrozenInstanceError
 from fractions import Fraction
 
@@ -547,3 +549,212 @@ class TestDimension:
 
         # ASSERT
         assert string == "T·L·M·I·Θ·N·J"
+
+    @pytest.mark.parametrize("dim", list(BaseDimension))
+    def test_base_returns_same_instance(self, dim):
+        # ACT
+        first = Dimension.base(dim)
+        second = Dimension.base(dim)
+
+        # ASSERT
+        assert first is second
+
+    def test_dimensionless_returns_same_instance(self):
+        # ACT
+        first = Dimension.dimensionless()
+        second = Dimension.dimensionless()
+
+        # ASSERT
+        assert first is second
+
+    def test_different_dimensions_are_different_instances(self, length, time):
+        # ASSERT
+        assert length is not time
+
+    def test_from_dict_returns_same_instance_as_base(self, length):
+        # ARRANGE
+        dictionary = {"length": Fraction(1)}
+
+        # ACT
+        result = Dimension.from_dict(dictionary)
+
+        # ASSERT
+        assert result is length
+
+    def test_from_dict_equal_dictionaries_return_same_instance(self):
+        # ARRANGE
+        first_dict = {"mass": Fraction(1), "time": Fraction(-2)}
+        second_dict = {"time": Fraction(-2), "mass": Fraction(1)}
+
+        # ACT
+        first = Dimension.from_dict(first_dict)
+        second = Dimension.from_dict(second_dict)
+
+        # ASSERT
+        assert first is second
+
+    def test_create_returns_same_instance_for_same_exps(self):
+        # ARRANGE
+        exps = tuple(Fraction(i, 3) for i in range(7))
+
+        # ACT
+        first = Dimension._create(exps)
+        second = Dimension._create(exps)
+
+        # ASSERT
+        assert first is second
+
+    def test_create_normalises_ints_to_fractions_before_lookup(self):
+        # ARRANGE
+        int_exps = (0, 1, 2, 3, 4, 5, 6)
+        fraction_exps = tuple(Fraction(i) for i in range(7))
+
+        # ACT
+        from_ints = Dimension._create(int_exps)
+        from_fractions = Dimension._create(fraction_exps)
+
+        # ASSERT
+        assert from_ints is from_fractions
+
+    def test_multiplication_returns_cached_instance(self, length, time):
+        # ACT
+        first = length * time
+        second = time * length
+
+        # ASSERT
+        assert first is second
+
+    def test_multiplication_by_dimensionless_returns_same_instance(
+        self, length, dimensionless
+    ):
+        # ACT
+        result = length * dimensionless
+
+        # ASSERT
+        assert result is length
+
+    def test_multiplication_with_inverse_returns_dimensionless_instance(
+        self, length, dimensionless
+    ):
+        # ACT
+        result = length * length**-1
+
+        # ASSERT
+        assert result is dimensionless
+
+    def test_division_returns_cached_instance(self, length, time):
+        # ACT
+        result = (length * time) / time
+
+        # ASSERT
+        assert result is length
+
+    def test_self_division_returns_dimensionless_instance(self, length, dimensionless):
+        # ACT
+        result = length / length
+
+        # ASSERT
+        assert result is dimensionless
+
+    def test_power_zero_returns_dimensionless_instance(self, length, dimensionless):
+        # ACT
+        result = length**0
+
+        # ASSERT
+        assert result is dimensionless
+
+    def test_power_one_returns_same_instance(self, length):
+        # ACT
+        result = length**1
+
+        # ASSERT
+        assert result is length
+
+    def test_power_matches_repeated_multiplication_by_identity(self, length):
+        # ACT
+        power = length**3
+        multiplied = length * length * length
+
+        # ASSERT
+        assert power is multiplied
+
+    def test_fractional_power_round_trip_returns_same_instance(self, length, time):
+        # ARRANGE
+        dimension = length / time**3
+
+        # ACT
+        result = (dimension ** Fraction(1, 3)) ** 3
+
+        # ASSERT
+        assert result is dimension
+
+    def test_created_instance_is_stored_in_cache(self, length):
+        # ASSERT
+        assert Dimension._instances[length.exps] is length
+
+    def test_failed_creation_is_not_cached(self):
+        # ARRANGE
+        exps = (Fraction(1, 5),) * 6
+
+        # ACT
+        with pytest.raises(ValueError):
+            Dimension._create(exps)
+
+        # ASSERT
+        assert exps not in Dimension._instances
+
+    def test_instance_is_weak_referenceable(self, length):
+        # ACT
+        ref = weakref.ref(length)
+
+        # ASSERT
+        assert ref() is length
+
+    def test_referenced_instance_stays_in_cache_after_gc(self):
+        # ARRANGE
+        exps = tuple(Fraction(i + 1, 17) for i in range(7))
+        dimension = Dimension._create(exps)
+
+        # ACT
+        gc.collect()
+
+        # ASSERT
+        assert Dimension._instances[exps] is dimension
+
+    def test_unreferenced_instance_is_removed_from_cache(self):
+        # ARRANGE
+        exps = tuple(Fraction(i + 1, 19) for i in range(7))
+        dimension = Dimension._create(exps)
+
+        # ACT
+        del dimension
+        gc.collect()
+
+        # ASSERT
+        assert exps not in Dimension._instances
+
+    def test_dimension_can_be_recreated_after_being_collected(self):
+        # ARRANGE
+        exps = tuple(Fraction(i + 1, 23) for i in range(7))
+        first = Dimension._create(exps)
+        del first
+        gc.collect()
+
+        # ACT
+        second = Dimension._create(exps)
+
+        # ASSERT
+        assert second.exps == exps
+        assert Dimension._instances[exps] is second
+
+    def test_direct_construction_bypasses_cache_but_compares_equal(self, length):
+        # ARRANGE
+        exps = length.exps
+
+        # ACT
+        direct = Dimension(exps)
+
+        # ASSERT
+        assert direct is not length
+        assert direct == length
+        assert hash(direct) == hash(length)
