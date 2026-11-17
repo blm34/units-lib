@@ -1,10 +1,10 @@
-# TODO: Apply a flyweight pattern to dimensions?
 from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, unique
 from fractions import Fraction
-from typing import Self, cast
+from typing import ClassVar, Self, cast
+from weakref import WeakValueDictionary
 
 PowersTuple = tuple[
     Fraction,
@@ -49,11 +49,13 @@ _ZERO = cast(
 )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, weakref_slot=True)
 class Dimension:
     """Represents the dimension of a unit."""
 
     exps: PowersTuple
+
+    _instances: ClassVar[WeakValueDictionary] = WeakValueDictionary()
 
     def __post_init__(self):
         if len(self.exps) != len(BaseDimension):
@@ -63,18 +65,46 @@ class Dimension:
         object.__setattr__(self, "exps", frac_exps)
 
     @classmethod
+    def _create(cls, exps: PowersTuple) -> Self:
+        """Make a new instance or return an existing one if it exists.
+
+        Checks the cache in a weak value dictionary for an instance with the
+        desired exponents. Return it if found, otherwise make a new one and
+        add it to the dictionary.
+
+        Args:
+            exps: The exponents of the base dimensions
+
+        Returns:
+            A ``Dimension`` with the specified ``exps``
+        """
+        key = cast(
+            PowersTuple,
+            tuple(Fraction(exp) for exp in exps),
+        )
+
+        # TODO: Make this thread safe
+        existing = cls._instances.get(key)
+        if existing is not None:
+            return existing
+
+        obj = cls(key)
+        cls._instances[key] = obj
+        return obj
+
+    @classmethod
     def base(cls, dim: BaseDimension) -> Self:
         """Get the `Dimension` representing the given dimension to the first power."""
         exps = cast(
             PowersTuple,
             tuple(Fraction(int(dim == d)) for d in BaseDimension),
         )
-        return cls(exps)
+        return cls._create(exps)
 
     @classmethod
     def dimensionless(cls) -> Self:
         """Get a dimensionless `Dimension`."""
-        return cls(_ZERO)
+        return cls._create(_ZERO)
 
     @classmethod
     def from_dict(cls, dictionary: dict[str, Fraction]) -> Self:
@@ -103,7 +133,7 @@ class Dimension:
             PowersTuple,
             tuple(powers),
         )
-        return cls(power_tuple)
+        return cls._create(power_tuple)
 
     def __mul__(self, other: Dimension) -> Dimension:
         """Result of multiplying two dimensions together."""
@@ -114,7 +144,7 @@ class Dimension:
             PowersTuple,
             tuple(a + b for a, b in zip(self.exps, other.exps, strict=True)),
         )
-        return Dimension(exps)
+        return Dimension._create(exps)
 
     def __truediv__(self, other: Dimension) -> Dimension:
         """Result of dividing a dimension by a dimension."""
@@ -125,7 +155,7 @@ class Dimension:
             PowersTuple,
             tuple(a - b for a, b in zip(self.exps, other.exps, strict=True)),
         )
-        return Dimension(exps)
+        return Dimension._create(exps)
 
     def __pow__(self, exponent: int | Fraction) -> Dimension:
         """Result of raising a dimension to a power."""
@@ -136,7 +166,7 @@ class Dimension:
             PowersTuple,
             tuple(d * exponent for d in self.exps),
         )
-        return Dimension(exps)
+        return Dimension._create(exps)
 
     def __repr__(self) -> str:
         return f"Dimension({self.exps!r})"
