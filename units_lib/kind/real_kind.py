@@ -3,9 +3,11 @@ from __future__ import annotations
 from typing import ClassVar
 
 from units_lib.dimensions import Dimension
-from units_lib.exceptions import IncompatibleDimensionError
+from units_lib.exceptions import IncompatibleDimensionError, IncompatibleKindsError
 
-from .typing import BaseKind
+from .base_kind import BaseKind
+from .null_kind import null_kind_for
+from .typing import Kind
 
 
 class RealKind(BaseKind):
@@ -62,3 +64,55 @@ class RealKind(BaseKind):
 
         # Set class vars
         cls.name = f"{cls.__name__}[{cls.dimension}]"
+
+    @classmethod
+    def common_with(cls, other: Kind) -> Kind:
+        """Get the closest ``Kind`` that is common to the given kind.
+
+        If kinds have different dimensions, raises an ``IncompatibleDimensionError``.
+        If either kind is a null kind or there is no common kind, returns a null kind
+        with the given dimension.
+
+        Args:
+            other: The ``Kind`` to find a common kind with
+
+        Returns:
+            The closest common kind with the given kind
+
+        Raises:
+            IncompatibleDimensionError if the kind has a different dimension
+        """
+        if cls.dimension != other.dimension:
+            raise IncompatibleKindsError(
+                cls,
+                other,
+                "Kinds with different dimensions cannot share a common kind",
+            )
+
+        if other.is_null:
+            return null_kind_for(cls.dimension)
+
+        for parent in other.__mro__:
+            if parent is RealKind:
+                break
+
+            if issubclass(parent, RealKind) and issubclass(cls, parent):
+                return parent
+
+        return null_kind_for(cls.dimension)
+
+    @classmethod
+    def is_compatible(cls, other: Kind) -> bool:
+        """True if the kinds share a dimension and a common inherited class.
+
+        Having different dimensions makes them incompatible. If ``other`` is a
+        are null kind then they could be compatible - return True. Otherwise,
+        check if there is a shared inherited class that makes them compatible.
+        """
+        if cls.dimension != other.dimension:
+            return False
+
+        if other.is_null:
+            return True
+
+        return not cls.common_with(other).is_null

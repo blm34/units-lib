@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import types
+from abc import ABCMeta
 from functools import cache
 from typing import ClassVar
 
 from units_lib.dimensions import Dimension
+from units_lib.exceptions import IncompatibleKindsError
 
-from .typing import BaseKind
+from .base_kind import BaseKind
+from .typing import Kind
 
 
-class _NullKindMeta(type):
+class _NullKindMeta(ABCMeta):
     """Lets null kinds be truth tested: they are always falsey."""
 
     def __bool__(cls) -> bool:
@@ -32,6 +35,44 @@ class NullKind(BaseKind, metaclass=_NullKindMeta):
         super().__init_subclass__(**kwargs)
         cls.dimension = dimension
         cls.name = f"{cls.__name__}[{dimension}]"
+
+    @classmethod
+    def common_with(cls, other: Kind) -> Kind:
+        """Get the closest ``Kind`` that is common to the given kind.
+
+        As this is a null kind, the closest common kind is a null kind.
+
+        Args:
+            other: The ``Kind`` to find a common kind with
+
+        Returns:
+            A null kind with the given dimension
+
+        Raises:
+            IncompatibleDimensionError if the dimensions don't match
+        """
+        if cls.dimension != other.dimension:
+            raise IncompatibleKindsError(
+                cls,
+                other,
+                "Kinds with different dimensions cannot share a common kind",
+            )
+
+        return cls
+
+    @classmethod
+    def is_compatible(cls, other: Kind) -> bool:
+        """True if the kinds share a dimension.
+
+        A null kind is compatible with any kind of the same dimension.
+
+        Args:
+            other: The kind to check for compatibility
+
+        Returns:
+            True if the kinds are compatible
+        """
+        return cls.dimension == other.dimension
 
 
 @cache

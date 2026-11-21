@@ -1,7 +1,26 @@
+import types
+
 import pytest
 
 from units_lib.dimensions import BaseDimension, Dimension
+from units_lib.exceptions import IncompatibleKindsError
 from units_lib.kind.null_kind import NullKind, null_kind_for
+from units_lib.kind.real_kind import RealKind
+
+
+def make_kind(
+    name: str,
+    dimension: Dimension,
+    inherits: type[RealKind] | None = None,
+) -> type[RealKind]:
+    base = inherits or RealKind
+
+    return types.new_class(
+        name,
+        (base,),
+        {"dimension": dimension},
+        lambda ns: ns.update(__module__=__name__),
+    )
 
 
 @pytest.fixture
@@ -168,3 +187,119 @@ class TestNullKindFor:
 
         # ASSERT
         assert result is False
+
+
+class TestIsCompatible:
+    def test_returns_false_for_different_dimensions_of_null(
+        self, length_dimension, time_dimension
+    ):
+        # ARRANGE
+        length_kind = null_kind_for(length_dimension)
+        time_kind = null_kind_for(time_dimension)
+
+        # ACT
+        result = length_kind.is_compatible(time_kind)
+
+        # ASSERT
+        assert result is False
+
+    def test_returns_false_for_different_dimensions_of_real(
+        self, length_dimension, time_dimension
+    ):
+        # ARRANGE
+        length_kind = null_kind_for(length_dimension)
+        time_kind = make_kind("Time", time_dimension)
+
+        # ACT
+        result = length_kind.is_compatible(time_kind)
+
+        # ASSERT
+        assert result is False
+
+    def test_returns_true_when_dimension_is_the_same_for_null(self, length_dimension):
+        # ARRANGE
+        first = null_kind_for(length_dimension)
+        second = null_kind_for(length_dimension)
+
+        # ACT
+        result = first.is_compatible(second)
+
+        # ASSERT
+        assert result is True
+
+    def test_returns_true_when_dimension_is_the_same_for_real(self, length_dimension):
+        # ARRANGE
+        first = null_kind_for(length_dimension)
+        second = make_kind("RealLength", length_dimension)
+
+        # ACT
+        result = first.is_compatible(second)
+
+        # ASSERT
+        assert result is True
+
+
+class TestCommonWith:
+    def test_returns_null_kind_when_dimensions_match_null(self, length_dimension):
+        # ARRANGE
+        first = null_kind_for(length_dimension)
+        second = null_kind_for(length_dimension)
+
+        # ACT
+        result = first.common_with(second)
+
+        # ASSERT
+        assert issubclass(result, NullKind)
+        assert result.dimension == length_dimension
+
+    def test_returns_null_kind_when_dimensions_match_real(self, length_dimension):
+        # ARRANGE
+        first = null_kind_for(length_dimension)
+        second = make_kind("RealLength", length_dimension)
+
+        # ACT
+        result = first.common_with(second)
+
+        # ASSERT
+        assert issubclass(result, NullKind)
+        assert result.dimension == length_dimension
+
+    def test_raises_for_different_dimensions_null(
+        self, length_dimension, time_dimension
+    ):
+        # ARRANGE
+        length_kind = null_kind_for(length_dimension)
+        time_kind = null_kind_for(time_dimension)
+
+        # ACT / ASSERT
+        with pytest.raises(IncompatibleKindsError):
+            length_kind.common_with(time_kind)
+
+    def test_raises_for_different_dimensions_real(
+        self, length_dimension, time_dimension
+    ):
+        # ARRANGE
+        length_kind = null_kind_for(length_dimension)
+        time_kind = make_kind("RealTime", time_dimension)
+
+        # ACT / ASSERT
+        with pytest.raises(IncompatibleKindsError):
+            length_kind.common_with(time_kind)
+
+    def test_error_message_includes_kind_names_and_dimensions(
+        self, length_dimension, time_dimension
+    ):
+        # ARRANGE
+        length_kind = null_kind_for(length_dimension)
+        time_kind = make_kind("TimeKind", time_dimension)
+
+        # ACT
+        with pytest.raises(IncompatibleKindsError) as exc_info:
+            length_kind.common_with(time_kind)
+
+        # ASSERT
+        message = str(exc_info.value)
+        assert length_kind.name in message
+        assert time_kind.name in message
+        assert str(length_dimension) in message
+        assert str(time_dimension) in message

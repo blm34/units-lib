@@ -1,15 +1,8 @@
-from typing import ClassVar, TypeAlias, TypeVar
+from __future__ import annotations
 
-from units_lib.dimensions import Dimension
+from typing import TypeAlias, TypeVar
 
-
-class BaseKind:
-    """What both real kinds and null kinds provide."""
-
-    name: ClassVar[str]
-    dimension: ClassVar[Dimension]
-    is_null: ClassVar[bool]
-
+from .base_kind import BaseKind
 
 Kind: TypeAlias = type[BaseKind]
 K = TypeVar("K", bound=BaseKind)
